@@ -100,6 +100,46 @@ local function setClipboard(text)
 end
 
 ----------------------------------------------------------------------
+-- Brand logo (real image, no Roblox upload needed)
+-- Downloads the PNG and exposes it via the executor's custom-asset API
+-- (getcustomasset / getsynasset), cached on disk after the first load.
+----------------------------------------------------------------------
+local LOGO_URL = "https://raw.githubusercontent.com/DiabloPaidProjects/NEMESIS/main/assets/nemesis_logo.png"
+local LOGO_FILE = "nemesis_logo.png"
+local brandLogoCache = nil -- nil = untried, false = failed, string = rbxasset id
+
+local function customAssetFn()
+	if type(getcustomasset) == "function" then return getcustomasset end
+	if type(getsynasset) == "function" then return getsynasset end
+	if syn and type(syn.getcustomasset) == "function" then
+		return function(p) return syn.getcustomasset(p) end
+	end
+	return nil
+end
+
+local function loadBrandLogo()
+	if brandLogoCache ~= nil then return brandLogoCache or nil end
+	brandLogoCache = false
+	local getAsset = customAssetFn()
+	if not getAsset or type(writefile) ~= "function" then return nil end
+	pcall(function()
+		local have = type(isfile) == "function" and isfile(LOGO_FILE)
+		if not have then
+			local data = game:HttpGet(LOGO_URL)
+			if type(data) == "string" and #data > 500 then
+				writefile(LOGO_FILE, data)
+				have = true
+			end
+		end
+		if have then
+			local id = getAsset(LOGO_FILE)
+			if type(id) == "string" and id ~= "" then brandLogoCache = id end
+		end
+	end)
+	return brandLogoCache or nil
+end
+
+----------------------------------------------------------------------
 -- Icons (Lucide names via Rayfield's icon map, or raw asset IDs)
 ----------------------------------------------------------------------
 local ICON_URL = "https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/refs/heads/main/icons.lua"
@@ -1596,45 +1636,46 @@ function NEMESIS.Window(opts)
 	})
 	makeDraggable(root, topbar)
 
-	-- logo: a built-in neon "N" + NEMESIS wordmark (drawn in pure UI so it ships
-	-- to everyone with no asset upload). Pass opts.logo = <assetId> to swap the
-	-- mark for an uploaded image instead.
+	-- logo: the real NEMESIS brand image (downloaded + loaded via getcustomasset,
+	-- no Roblox upload). Falls back to a gradient "N" tile + wordmark on executors
+	-- without custom-asset support. opts.logo = <assetId> forces an uploaded image.
 	local wordmarkText = string.upper(tostring(opts.title or "NEMESIS"))
-	local NEON_CORE = Color3.fromRGB(236, 218, 255) -- bright lilac core
-	local NEON_GLOW = Color3.fromRGB(150, 92, 255)  -- purple bloom
+	local logoSpec = (opts.logo ~= nil) and resolveIcon(opts.logo) or nil
+	local brandAsset = (opts.logo == nil) and loadBrandLogo() or nil
 
-	-- a glowing label: a soft fat-stroke halo copy behind a crisp gradient core
-	local function neon(text, pos, size, textSize, xalign)
-		xalign = xalign or Enum.TextXAlignment.Left
-		Create("TextLabel", { -- halo
+	local function wordmark(x)
+		return Create("TextLabel", {
+			Position = UDim2.new(0, x, 0.5, 0),
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = pos, Size = size,
+			Size = UDim2.new(0, 160, 1, 0),
 			BackgroundTransparency = 1,
-			Font = FONT_BOLD, Text = text,
-			TextColor3 = NEON_GLOW, TextTransparency = 0.25, TextSize = textSize,
-			TextXAlignment = xalign, TextYAlignment = Enum.TextYAlignment.Center,
-			Parent = topbar,
-		}, { stroke(NEON_GLOW, 4, 0.55) })
-		local main = Create("TextLabel", { -- crisp core
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = pos, Size = size,
-			BackgroundTransparency = 1,
-			Font = FONT_BOLD, Text = text,
-			TextColor3 = NEON_CORE, TextSize = textSize,
-			TextXAlignment = xalign, TextYAlignment = Enum.TextYAlignment.Center,
+			Font = FONT_BOLD,
+			Text = wordmarkText,
+			TextColor3 = Color3.fromRGB(232, 220, 255),
+			TextSize = 18,
+			TextXAlignment = Enum.TextXAlignment.Left,
 			Parent = topbar,
 		}, {
-			stroke(NEON_GLOW, 1.6, 0.1),
+			stroke(Color3.fromRGB(150, 92, 255), 1, 0.45),
 			Create("UIGradient", {
 				Rotation = 90,
-				Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(198, 152, 255)),
+				Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(192, 152, 255)),
 			}),
 		})
-		return main
 	end
 
-	local logoSpec = resolveIcon(opts.logo)
-	if logoSpec then
+	if brandAsset then
+		-- full N + NEMESIS brand image (aspect ~2.81); wordmark is part of it
+		Create("ImageLabel", {
+			Position = UDim2.new(0, 14, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Size = UDim2.new(0, 124, 0, 44),
+			BackgroundTransparency = 1,
+			Image = brandAsset,
+			ScaleType = Enum.ScaleType.Fit,
+			Parent = topbar,
+		})
+	elseif logoSpec then
 		local logoImg = Create("ImageLabel", {
 			Position = UDim2.new(0, 16, 0.5, 0),
 			AnchorPoint = Vector2.new(0, 0.5),
@@ -1643,10 +1684,32 @@ function NEMESIS.Window(opts)
 			Parent = topbar,
 		})
 		applyIcon(logoImg, logoSpec)
-		neon(wordmarkText, UDim2.new(0, 64, 0.5, 0), UDim2.new(0, 160, 1, 0), 18)
+		wordmark(64)
 	else
-		neon("N", UDim2.new(0, 14, 0.5, 0), UDim2.new(0, 30, 1, 0), 30, Enum.TextXAlignment.Center)
-		neon(wordmarkText, UDim2.new(0, 54, 0.5, 0), UDim2.new(0, 170, 1, 0), 19)
+		local tile = Create("Frame", {
+			Position = UDim2.new(0, 18, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			Size = UDim2.new(0, 34, 0, 34),
+			BackgroundColor3 = accent,
+			Parent = topbar,
+		}, {
+			corner(10),
+			stroke(Color3.fromRGB(185, 155, 255), 1, 0.25),
+			Create("UIGradient", {
+				Rotation = 90,
+				Color = ColorSequence.new(Color3.fromRGB(168, 124, 255), Color3.fromRGB(118, 70, 234)),
+			}),
+		})
+		Create("TextLabel", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			Font = FONT_BOLD,
+			Text = "N",
+			TextColor3 = THEME.Text,
+			TextSize = 20,
+			Parent = tile,
+		})
+		wordmark(62)
 	end
 
 	-- centered top-tab bar

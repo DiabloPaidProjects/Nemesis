@@ -56,7 +56,7 @@ The API is **dot-style** — call methods with `.` (not `:`). Option tables use 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `title` | string | `"NEMESIS"` | Wordmark next to the logo. |
-| `logo` | number \| string? | — | Roblox image/decal ID (or `"rbxassetid://N"`) for the logo mark. Falls back to a purple "N" tile. |
+| `logo` | number \| string? | — | Override the logo with your own Roblox image/decal ID. By default the real **NEMESIS** brand image auto-loads (downloaded + shown via `getcustomasset`, no upload); on executors without custom-asset support it falls back to a gradient "N" tile. |
 | `accent` | Color3? | purple | Accent for highlights, toggles, sliders, underline. |
 | `game` | string? | `"Game"` | Footer game name (next to the green status dot). |
 | `status` | string? | `"Connected"` | Footer status line under the game name. |
