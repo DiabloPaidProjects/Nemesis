@@ -104,8 +104,10 @@ end
 -- Downloads the PNG and exposes it via the executor's custom-asset API
 -- (getcustomasset / getsynasset), cached on disk after the first load.
 ----------------------------------------------------------------------
-local LOGO_URL = "https://raw.githubusercontent.com/DiabloPaidProjects/NEMESIS/main/assets/nemesis_logo.png"
-local LOGO_FILE = "nemesis_logo_v3.png" -- bump when assets/nemesis_logo.png changes (busts on-disk cache)
+-- versioned path: bump the filename (URL + on-disk cache) whenever the logo
+-- changes, so neither the GitHub CDN nor the executor serves a stale image
+local LOGO_URL = "https://raw.githubusercontent.com/DiabloPaidProjects/NEMESIS/main/assets/nemesis_logo_v3.png"
+local LOGO_FILE = "nemesis_logo_v3.png"
 local brandLogoCache = nil -- nil = untried, false = failed, string = rbxasset id
 
 local function customAssetFn()
