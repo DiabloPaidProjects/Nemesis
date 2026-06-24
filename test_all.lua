@@ -124,4 +124,13 @@ vm.Keybind({ text = "Toggle ESP", default = Enum.KeyCode.V, mode = "Toggle", fla
 local Extra = Layout.Page("Extra", { icon = "more-horizontal" })
 Extra.Toggle({ text = "Page-level toggle (lazy section)", default = false, flag = "x_lazy" })
 
+-- columns: explicit per-page column count + manual section placement
+local Grid = Layout.Page("Grid", { icon = "grid-2x2", columns = 2 })
+local gridL = Grid.Section("LEFT")                 -- auto-placed (column 1)
+gridL.Toggle({ text = "Auto column 1", default = true, flag = "grid_a" })
+gridL.Slider({ text = "Value", min = 0, max = 100, default = 40, flag = "grid_v" })
+local gridR = Grid.Section("RIGHT", { column = 2 }) -- forced into column 2
+gridR.Toggle({ text = "Manual column 2", default = false, flag = "grid_b" })
+gridR.Dropdown({ text = "Mode", options = { "A", "B", "C" }, default = "A", flag = "grid_m" })
+
 NEMESIS.Notify({ title = "NEMESIS", content = "Test bench loaded — explore every tab.", duration = 5 })

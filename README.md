@@ -58,6 +58,7 @@ The API is **dot-style** — call methods with `.` (not `:`). Option tables use 
 | `title` | string | `"NEMESIS"` | Wordmark next to the logo. |
 | `logo` | number \| string? | — | Override the logo with your own Roblox image/decal ID. By default the **NEMESIS** N mark auto-loads (downloaded + shown via `getcustomasset`, no upload); on executors without custom-asset support it falls back to a gradient "N" tile. |
 | `logoColor` | Color3? | red | Tints the built-in N logo any hue (purple, pink, green, yellow, …). Change it live with `Win.SetLogoColor(color)`. |
+| `columns` | number? | 2 (1 mobile) | Default number of panel columns per page (1–3). Pages lay their Sections out as a one-pager grid; override per page or per section (below). |
 | `accent` | Color3? | purple | Accent for highlights, toggles, sliders, underline. |
 | `game` | string? | `"Game"` | Footer game name (next to the green status dot). |
 | `status` | string? | `"Connected"` | Footer status line under the game name. |
@@ -94,6 +95,7 @@ A sidebar sub-tab under a group. `opts`:
 | Page option | Type | Description |
 |---|---|---|
 | `icon` | string \| number | Lucide name, `"rbxassetid://N"`, or numeric asset ID. |
+| `columns` | number? | inherits Window | Panel columns for this page (1–3). e.g. `Aimbot.Page("General", { icon = "crosshair", columns = 2 })`. |
 
 The first page created in a tab is its default-active page. Clicking a page swaps the content area; the breadcrumb updates to `Tab › Group › Page`.
 
@@ -101,9 +103,13 @@ The first page created in a tab is its default-active page. Clicking a page swap
 
 A collapsible card in the content area. Click the header chevron to collapse it. Returns a host with the element creators below. (`Page` also exposes those creators directly — they go into a lazily-created untitled section.)
 
+Sections **auto-distribute** across the page's columns (balanced by count). Force a column with `{ column = N }` or `{ side = "left"|"right" }`:
+
 ```lua
-local s = General.Section("GENERAL")
+local s = General.Section("GENERAL")              -- auto-placed
 s.Toggle({ text = "Enable", default = true })
+
+General.Section("HITBOX", { column = 2 })          -- forced into column 2
 ```
 
 ### Components

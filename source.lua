@@ -306,8 +306,10 @@ local FONT_BOLD = Enum.Font.GothamBold
 -- Inline-row layout metrics (scaled by the window's UIScale at runtime)
 local ROW_H = 46          -- height of a setting row
 local ROW_PAD = 16        -- horizontal inset inside a row / section
-local FIELD_W = 230       -- dropdown / keybind / input field width
-local SLIDER_W = 250      -- slider (value + track) cluster width
+-- Right-side control widths are a FRACTION of the row, so they fit any column
+-- count (1 / 2 / 3) and resize. Label takes the complementary fraction.
+local FIELD_FRAC = 0.5    -- dropdown / keybind / input field width fraction
+local SLIDER_FRAC = 0.55  -- slider (value + track) cluster width fraction
 
 local function hexOf(c)
 	return string.format("%02X%02X%02X",
@@ -630,13 +632,17 @@ local function newRow(parent, height)
 end
 
 -- Left-hand label (single line by default; optional muted description line).
-local function rowText(parent, text, desc, rightReserve)
-	rightReserve = rightReserve or 48
+-- reserveScale + reservePx clear room on the right for the control:
+-- label width = (1 - reserveScale) scale, minus reservePx pixels.
+local function rowText(parent, text, desc, reserveScale, reservePx)
+	reserveScale = reserveScale or 0
+	reservePx = reservePx or 48
+	local lblSize = UDim2.new(1 - reserveScale, -reservePx, 1, 0)
 	tagSearch(parent, (desc and desc ~= "") and (tostring(text) .. " " .. tostring(desc)) or text)
 	if desc and desc ~= "" then
 		local col = Create("Frame", {
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, -rightReserve, 1, 0),
+			Size = lblSize,
 			Parent = parent,
 		}, {
 			Create("UIListLayout", {
@@ -671,7 +677,7 @@ local function rowText(parent, text, desc, rightReserve)
 	end
 	return Create("TextLabel", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -rightReserve, 1, 0),
+		Size = lblSize,
 		Font = FONT_MED,
 		Text = tostring(text or ""),
 		TextColor3 = THEME.Text,
@@ -683,12 +689,12 @@ local function rowText(parent, text, desc, rightReserve)
 	})
 end
 
--- A right-aligned rounded field box (used by dropdown / keybind / input).
-local function fieldBox(row, w)
+-- A right-aligned rounded field box (width = fraction of the row).
+local function fieldBox(row, frac)
 	return Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.new(0, w or FIELD_W, 0, 32),
+		Size = UDim2.new(frac or FIELD_FRAC, 0, 0, 32),
 		BackgroundColor3 = THEME.Element,
 		Parent = row,
 	}, { corner(8), stroke(THEME.ElementStroke, 1, 0.35) })
@@ -771,7 +777,7 @@ function Elements.Button(parent, accent, opts)
 		Text = "",
 		Parent = row,
 	})
-	rowText(row, opts.text, opts.desc, 90)
+	rowText(row, opts.text, opts.desc, 0, 90)
 	local chip = Create("TextLabel", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
@@ -801,7 +807,7 @@ function Elements.Toggle(parent, accent, opts)
 	opts = opts or {}
 	local state = opts.default and true or false
 	local row = newRow(parent, opts.desc and 58 or ROW_H)
-	rowText(row, opts.text, opts.desc, 64)
+	rowText(row, opts.text, opts.desc, 0, 64)
 
 	local track = Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -866,12 +872,12 @@ function Elements.Slider(parent, accent, opts)
 	end
 
 	local row = newRow(parent, ROW_H)
-	rowText(row, opts.text, opts.desc, SLIDER_W + 16)
+	rowText(row, opts.text, opts.desc, SLIDER_FRAC, 12)
 
 	local cluster = Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.new(0, SLIDER_W, 1, 0),
+		Size = UDim2.new(SLIDER_FRAC, 0, 1, 0),
 		BackgroundTransparency = 1,
 		Parent = row,
 	})
@@ -958,8 +964,8 @@ function Elements.Dropdown(parent, accent, opts)
 	local single = (not multi) and opts.default or nil
 
 	local row = newRow(parent, ROW_H)
-	rowText(row, opts.text, opts.desc, FIELD_W + 24)
-	local field = fieldBox(row, FIELD_W)
+	rowText(row, opts.text, opts.desc, FIELD_FRAC, 16)
+	local field = fieldBox(row)
 
 	local current = Create("TextLabel", {
 		BackgroundTransparency = 1,
@@ -1009,7 +1015,7 @@ function Elements.Dropdown(parent, accent, opts)
 	local listInner = Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -ROW_PAD, 0, 2),
-		Size = UDim2.new(0, FIELD_W, 1, -2),
+		Size = UDim2.new(FIELD_FRAC, -16, 1, -2),
 		BackgroundColor3 = THEME.Element,
 		Parent = listHolder,
 	}, {
@@ -1127,8 +1133,8 @@ end
 function Elements.Input(parent, accent, opts)
 	opts = opts or {}
 	local row = newRow(parent, ROW_H)
-	rowText(row, opts.text, opts.desc, FIELD_W + 24)
-	local field = fieldBox(row, FIELD_W)
+	rowText(row, opts.text, opts.desc, FIELD_FRAC, 16)
+	local field = fieldBox(row)
 	local fieldStroke = field:FindFirstChildOfClass("UIStroke")
 	local box = Create("TextBox", {
 		BackgroundTransparency = 1,
@@ -1191,8 +1197,8 @@ function Elements.Keybind(parent, accent, opts)
 	local mode = opts.mode or "Toggle"
 	local key = opts.default
 	local row = newRow(parent, ROW_H)
-	rowText(row, opts.text, opts.desc, FIELD_W + 24)
-	local field = fieldBox(row, FIELD_W)
+	rowText(row, opts.text, opts.desc, FIELD_FRAC, 16)
+	local field = fieldBox(row)
 	local fieldStroke = field:FindFirstChildOfClass("UIStroke")
 	local btn = Create("TextButton", {
 		BackgroundTransparency = 1,
@@ -1268,7 +1274,7 @@ function Elements.ColorPicker(parent, accent, opts)
 	local h, s, v = value:ToHSV()
 
 	local row = newRow(parent, ROW_H)
-	rowText(row, opts.text, opts.desc, 64)
+	rowText(row, opts.text, opts.desc, 0, 64)
 	local swatch = Create("TextButton", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
@@ -1465,12 +1471,12 @@ end
 ----------------------------------------------------------------------
 -- Collapsible content section ("GENERAL", "HITBOX", …)
 ----------------------------------------------------------------------
-local function makeSection(pageBody, accent, title)
+local function makeSection(host, accent, title)
 	local card = Create("Frame", {
 		BackgroundColor3 = THEME.Group,
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Parent = pageBody,
+		Parent = host,
 	}, {
 		corner(14),
 		stroke(THEME.Stroke, 1, 0.35),
@@ -1605,6 +1611,7 @@ function NEMESIS.Window(opts)
 	local accent = opts.accent or THEME.Accent
 	local accentHex = hexOf(accent)
 	local logoColor = opts.logoColor or Color3.fromRGB(255, 45, 45) -- tint for the built-in N logo
+	local windowColumns = opts.columns or (IS_MOBILE and 1 or 2) -- default panel columns per page
 	ensureRoot()
 
 	local scale = computeScale()
@@ -2377,13 +2384,60 @@ function NEMESIS.Window(opts)
 				Visible = false,
 				Parent = pagesHost,
 			}, {
-				Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 14) }),
+				Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }),
 				Create("UIPadding", {
-					PaddingLeft = UDim.new(0, 20), PaddingRight = UDim.new(0, 20),
+					PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18),
 					PaddingTop = UDim.new(0, 2), PaddingBottom = UDim.new(0, 16),
 				}),
 			})
 			smoothScroll(pageBody)
+
+			-- panels laid out across N columns (the one-pager grid)
+			local ncols = math.clamp(math.floor(popts.columns or windowColumns), 1, 3)
+			local COL_GAP = 12
+			local colOff = math.floor(COL_GAP * (ncols - 1) / ncols + 0.5)
+			local columnsHolder = Create("Frame", {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundTransparency = 1,
+				Parent = pageBody,
+			}, {
+				Create("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					Padding = UDim.new(0, COL_GAP),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					VerticalAlignment = Enum.VerticalAlignment.Top,
+				}),
+			})
+			local pageCols, colCount = {}, {}
+			for i = 1, ncols do
+				pageCols[i] = Create("Frame", {
+					Size = UDim2.new(1 / ncols, -colOff, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.Y,
+					BackgroundTransparency = 1,
+					LayoutOrder = i,
+					Parent = columnsHolder,
+				}, {
+					Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 14) }),
+				})
+				colCount[i] = 0
+			end
+			-- pick a column: explicit (column/side) or auto = fewest sections, ties left
+			local function pickColumn(sopts)
+				local idx
+				if sopts and type(sopts.column) == "number" then
+					idx = math.clamp(math.floor(sopts.column), 1, ncols)
+				elseif sopts and sopts.side == "left" then
+					idx = 1
+				elseif sopts and sopts.side == "right" then
+					idx = math.min(2, ncols)
+				else
+					idx = 1
+					for i = 2, ncols do if colCount[i] < colCount[idx] then idx = i end end
+				end
+				colCount[idx] = colCount[idx] + 1
+				return pageCols[idx]
+			end
 
 			local page = {
 				name = tostring(pname or "Page"),
@@ -2405,10 +2459,10 @@ function NEMESIS.Window(opts)
 			local Page = {}
 			local defaultHost
 			local function ensureDefault()
-				if not defaultHost then defaultHost = makeSection(pageBody, accent, nil) end
+				if not defaultHost then defaultHost = makeSection(pickColumn({ column = 1 }), accent, nil) end
 				return defaultHost
 			end
-			function Page.Section(t) return makeSection(pageBody, accent, t) end
+			function Page.Section(t, sopts) return makeSection(pickColumn(sopts), accent, t) end
 			Page.Button = function(a) return ensureDefault().Button(a) end
 			Page.Toggle = function(a) return ensureDefault().Toggle(a) end
 			Page.Slider = function(a) return ensureDefault().Slider(a) end

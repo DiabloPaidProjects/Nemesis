@@ -122,6 +122,12 @@ local vEsp = Visuals.Group("ESP").Page("Players", { icon = "eye" })
 vEsp.Section("BOXES").Toggle({ text = "Enabled", default = true, flag = "v_box" })
 check(NEMESIS.Flags.v_box == true, "second tab content works")
 
+-- columns: a page with an explicit column count + manual section placement
+local Grid = Combat.Group("LAYOUT").Page("Grid", { icon = "grid-2x2", columns = 2 })
+Grid.Section("LEFT").Toggle({ text = "A", default = true, flag = "grid_a" }) -- auto column 1
+Grid.Section("RIGHT", { column = 2 }).Toggle({ text = "B", default = false, flag = "grid_b" })
+check(NEMESIS.Flags.grid_a == true and NEMESIS.Flags.grid_b == false, "columns page + { column = 2 } Section works")
+
 NEMESIS.Notify({ title = "Loaded", content = "NEMESIS ready", duration = 2 })
 print("  ok: Notify ran without error")
 
