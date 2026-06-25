@@ -1041,11 +1041,14 @@ function Elements.Dropdown(parent, accent, opts)
 		ClipsDescendants = true,
 		Parent = parent,
 	})
+	-- inner panel auto-sizes to ALL its option rows (so none get cut off); the
+	-- clipping listHolder above just reveals it as it expands
 	local listStroke = stroke(THEME.ElementStroke, 1, 1)
 	local listInner = Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -ROW_PAD, 0, 2),
-		Size = UDim2.new(FIELD_FRAC, -16, 1, -2),
+		Size = UDim2.new(FIELD_FRAC, -16, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = THEME.Element,
 		BackgroundTransparency = 1,
 		Parent = listHolder,
