@@ -1672,7 +1672,7 @@ function NEMESIS.Window(opts)
 	opts = opts or {}
 	local accent = opts.accent or THEME.Accent
 	local accentHex = hexOf(accent)
-	local logoColor = opts.logoColor or Color3.fromRGB(255, 45, 45) -- tint for the built-in N logo
+	local logoColor = opts.logoColor or Color3.fromRGB(150, 85, 255) -- tint for the built-in N logo (purple)
 	local windowColumns = opts.columns or (IS_MOBILE and 1 or 2) -- default panel columns per page
 	ensureRoot()
 
