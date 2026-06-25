@@ -1584,16 +1584,17 @@ local function makeSection(host, accent, title)
 			open = not open
 			tween(chev, { Rotation = open and 0 or 180 }, TI.FAST)
 			if open then
-				bodyWrap.Visible = true
-				bodyWrap.AutomaticSize = Enum.AutomaticSize.Y
-				bodyWrap.Size = UDim2.new(1, 0, 0, 0)
-			else
-				local hgt = 0
-				pcall(function() hgt = bodyWrap.AbsoluteSize.Y end)
+				local target = 0
+				pcall(function() target = body.AbsoluteSize.Y end)
 				bodyWrap.AutomaticSize = Enum.AutomaticSize.None
-				bodyWrap.Size = UDim2.new(1, 0, 0, hgt)
+				tween(bodyWrap, { Size = UDim2.new(1, 0, 0, target) }, TI.EXPAND)
+				task.delay(0.28, function() if open then bodyWrap.AutomaticSize = Enum.AutomaticSize.Y end end)
+			else
+				local cur = 0
+				pcall(function() cur = bodyWrap.AbsoluteSize.Y end)
+				bodyWrap.AutomaticSize = Enum.AutomaticSize.None
+				bodyWrap.Size = UDim2.new(1, 0, 0, cur)
 				tween(bodyWrap, { Size = UDim2.new(1, 0, 0, 0) }, TI.EXPAND)
-				task.delay(0.32, function() if not open then bodyWrap.Visible = false end end)
 			end
 		end)
 	end
@@ -2444,16 +2445,20 @@ function NEMESIS.Window(opts)
 				open = not open
 				tween(chev, { Rotation = open and 0 or 180 }, TI.FAST)
 				if open then
-					clip.Visible = true
-					clip.AutomaticSize = Enum.AutomaticSize.Y
-					clip.Size = UDim2.new(1, 0, 0, 0)
-				else
-					local hgt = 0
-					pcall(function() hgt = clip.AbsoluteSize.Y end)
+					-- glide open to the measured content height, then hand back to
+					-- AutomaticSize so it adapts to later content changes
+					local target = 0
+					pcall(function() target = holder.AbsoluteSize.Y end)
 					clip.AutomaticSize = Enum.AutomaticSize.None
-					clip.Size = UDim2.new(1, 0, 0, hgt)
+					tween(clip, { Size = UDim2.new(1, 0, 0, target) }, TI.EXPAND)
+					task.delay(0.28, function() if open then clip.AutomaticSize = Enum.AutomaticSize.Y end end)
+				else
+					-- freeze current height, then glide closed to 0
+					local cur = 0
+					pcall(function() cur = clip.AbsoluteSize.Y end)
+					clip.AutomaticSize = Enum.AutomaticSize.None
+					clip.Size = UDim2.new(1, 0, 0, cur)
 					tween(clip, { Size = UDim2.new(1, 0, 0, 0) }, TI.EXPAND)
-					task.delay(0.32, function() if not open then clip.Visible = false end end)
 				end
 			end)
 			local Group = {}
