@@ -6,7 +6,7 @@
 		local NEMESIS = loadstring(game:HttpGet("https://raw.githubusercontent.com/DiabloPaidProjects/NEMESIS/main/source.lua"))()
 
 	v2.0 redesign (desktop-first; still scales down on touch):
-		- Centered segmented top tab bar (active = highlight + accent underline, smooth)
+		- Centered segmented top tab bar (active = flush filled segment + dividers, smooth)
 		- Grouped left sidebar of sub-tabs with boxed, collapsible group headers
 		- Breadcrumb in the content header
 		- Collapsible content Sections holding inline rows (label left / control right)
@@ -1717,12 +1717,14 @@ function NEMESIS.Window(opts)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	-- segmented tab container (one rounded bordered bar holding all tabs)
+	-- segmented tab container: one rounded bordered bar; the active tab fills it
+	-- flush (clipped to the bar's rounded corners), tabs split by hairline dividers
 	local tabBar = Create("Frame", {
 		Size = UDim2.new(0, 0, 0, 38),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = THEME.Element,
 		BackgroundTransparency = 0.35,
+		ClipsDescendants = true,
 		Parent = tabArea,
 	}, {
 		corner(10),
@@ -1730,12 +1732,8 @@ function NEMESIS.Window(opts)
 		Create("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
-			Padding = UDim.new(0, 2),
+			Padding = UDim.new(0, 0),
 			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-		Create("UIPadding", {
-			PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4),
-			PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4),
 		}),
 	})
 
@@ -2049,7 +2047,6 @@ function NEMESIS.Window(opts)
 		local info = animate and TI.FAST or TweenInfo.new(0)
 		tween(tab.button, { BackgroundTransparency = active and 0 or 1 }, info)
 		tween(tab.label, { TextColor3 = active and THEME.Text or THEME.SubText }, info)
-		tween(tab.underline, { BackgroundTransparency = active and 0 or 1 }, info)
 	end
 
 	local function showTab(tab)
@@ -2073,11 +2070,12 @@ function NEMESIS.Window(opts)
 	function Win.Tab(name, icon)
 		local tab = { name = tostring(name or "Tab"), pages = {}, activePage = nil }
 
-		-- top-tab segment: text only; active = filled highlight + accent underline
+		-- top-tab segment: flush full-height fill (clipped to the bar's rounded
+		-- corners), a hairline divider on its right edge, no underline / accent
 		local btn = Create("TextButton", {
 			Size = UDim2.new(0, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundColor3 = Color3.fromRGB(48, 50, 64),
+			BackgroundColor3 = Color3.fromRGB(44, 46, 58),
 			BackgroundTransparency = 1,
 			AutoButtonColor = false,
 			Font = FONT_MED,
@@ -2086,23 +2084,24 @@ function NEMESIS.Window(opts)
 			TextSize = 14,
 			Parent = tabBar,
 		}, {
-			corner(8),
-			Create("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14) }),
+			Create("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18) }),
 		})
-		local underline = Create("Frame", {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -3),
-			Size = UDim2.new(1, -20, 0, 2),
-			BackgroundColor3 = accent,
-			BackgroundTransparency = 1,
+		-- hairline between this tab and the next (revealed once a later tab exists)
+		local divider = Create("Frame", {
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.new(0, 1, 0, 18),
+			BackgroundColor3 = THEME.Stroke,
 			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = 2,
 			Parent = btn,
-		}, { corner(1) })
+		})
 		tab.button = btn
 		tab.label = btn
-		tab.underline = underline
+		tab.divider = divider
 		btn.MouseEnter:Connect(function()
-			if activeTab ~= tab then tween(btn, { BackgroundTransparency = 0.55 }, TI.HOVER) end
+			if activeTab ~= tab then tween(btn, { BackgroundTransparency = 0.72 }, TI.HOVER) end
 		end)
 		btn.MouseLeave:Connect(function()
 			if activeTab ~= tab then tween(btn, { BackgroundTransparency = 1 }, TI.HOVER) end
@@ -2387,6 +2386,8 @@ function NEMESIS.Window(opts)
 		end
 
 		table.insert(tabs, tab)
+		local prev = tabs[#tabs - 1]
+		if prev and prev.divider then prev.divider.Visible = true end
 		if #tabs == 1 then showTab(tab) end
 		return Tab
 	end
