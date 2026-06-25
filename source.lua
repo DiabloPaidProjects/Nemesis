@@ -798,22 +798,47 @@ function Elements.Toggle(parent, accent, opts)
 	opts = opts or {}
 	local state = opts.default and true or false
 	local row = newRow(parent, opts.desc and 50 or ROW_H)
-	rowText(row, opts.text, opts.desc, 0, 52)
+	rowText(row, opts.text, opts.desc, 0, 32)
 
-	local track = Create("Frame", {
+	-- neverlose-style checkbox: a dark rounded box whose accent-gradient fill
+	-- grows in with a Back ease + a checkmark, and scales up on hover
+	local box = Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
-		Size = UDim2.new(0, 40, 0, 22),
-		BackgroundColor3 = THEME.ToggleOff,
+		Size = UDim2.new(0, 20, 0, 20),
+		BackgroundColor3 = THEME.Element,
+		ClipsDescendants = true,
 		Parent = row,
-	}, { corner(11) })
-	local knob = Create("Frame", {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 3, 0.5, 0),
-		Size = UDim2.new(0, 16, 0, 16),
-		BackgroundColor3 = THEME.Knob,
-		Parent = track,
-	}, { corner(8) })
+	}, { corner(5), stroke(THEME.ElementStroke, 1, 0.35) })
+	local fill = Create("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Size = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = accent,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Parent = box,
+	}, {
+		corner(4),
+		Create("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new(accent, accent:Lerp(Color3.fromRGB(255, 255, 255), 0.35)),
+		}),
+	})
+	local check
+	local checkSpec = resolveIcon("check")
+	if checkSpec then
+		check = Create("ImageLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			Size = UDim2.new(0, 12, 0, 12),
+			BackgroundTransparency = 1,
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+			ImageTransparency = 1,
+			Parent = box,
+		})
+		applyIcon(check, checkSpec)
+	end
 	local click = Create("TextButton", {
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, ROW_PAD * 2, 1, 0),
@@ -824,15 +849,18 @@ function Elements.Toggle(parent, accent, opts)
 
 	local control = {}
 	local function render(animate)
-		local info = animate and TI.FAST or TweenInfo.new(0)
-		tween(track, { BackgroundColor3 = state and accent or THEME.ToggleOff }, info)
-		tween(knob, { Position = state and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0) }, info)
-		if animate then
-			-- subtle squash/stretch pop as the knob settles
-			tween(knob, { Size = UDim2.new(0, 18, 0, 16) }, TI.POP)
-			task.delay(0.11, function() tween(knob, { Size = UDim2.new(0, 16, 0, 16) }, TI.POP) end)
+		local fillInfo = animate and TI.POP or TweenInfo.new(0)
+		local checkInfo = animate and TI.FAST or TweenInfo.new(0)
+		tween(fill, {
+			Size = state and UDim2.new(1, 0, 1, 0) or UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = state and 0 or 1,
+		}, fillInfo)
+		if check then
+			tween(check, { ImageTransparency = state and 0 or 1 }, checkInfo)
 		end
 	end
+	click.MouseEnter:Connect(function() tween(box, { Size = UDim2.new(0, 22, 0, 22) }, TI.HOVER) end)
+	click.MouseLeave:Connect(function() tween(box, { Size = UDim2.new(0, 20, 0, 20) }, TI.HOVER) end)
 	function control.Set(v, silent)
 		state = v and true or false
 		if opts.flag then NEMESIS.Flags[opts.flag] = state end
@@ -900,7 +928,12 @@ function Elements.Slider(parent, accent, opts)
 		Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
 		BackgroundColor3 = accent,
 		Parent = bar,
-	}, { corner(3) })
+	}, {
+		corner(3),
+		Create("UIGradient", {
+			Color = ColorSequence.new(accent, accent:Lerp(Color3.fromRGB(255, 255, 255), 0.35)),
+		}),
+	})
 	local handle = Create("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new((value - min) / (max - min), 0, 0.5, 0),
