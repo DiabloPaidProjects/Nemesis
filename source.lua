@@ -2046,7 +2046,9 @@ function NEMESIS.Window(opts)
 	-- paint a top-tab segment for its active/inactive state (smoothly when animate)
 	local function paintTab(tab, active, animate)
 		local info = animate and TI.FAST or TweenInfo.new(0)
-		tween(tab.button, { BackgroundTransparency = active and 0 or 1 }, info)
+		for _, p in ipairs(tab.hlParts) do
+			tween(p, { BackgroundTransparency = active and 0 or 1 }, info)
+		end
 		tween(tab.label, { TextColor3 = active and THEME.Text or THEME.SubText }, info)
 	end
 
@@ -2090,33 +2092,84 @@ function NEMESIS.Window(opts)
 			})
 		end
 
-		-- top-tab segment: full-height fill that rounds its OWN corners (the
-		-- executor doesn't clip children to the bar's rounded corners, so the fill
-		-- needs corner(8) of its own to sit flush in the bar's rounded ends)
+		-- top-tab segment: a transparent button holds a rounded fill (behind) and a
+		-- text label (in front). the executor doesn't clip children to the bar's
+		-- rounded corners, so the fill rounds its own corner(8); the corner(s) that
+		-- face a NEIGHBOUR tab are then squared off so only the bar's outer edges
+		-- stay rounded (leftmost rounds left, rightmost rounds right, middle square).
+		local TAB_FILL = Color3.fromRGB(40, 42, 53)
+		local hasLeft = #tabs > 0
+
 		tabBarOrder = tabBarOrder + 1
 		local btn = Create("TextButton", {
 			Size = UDim2.new(0, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundColor3 = Color3.fromRGB(40, 42, 53),
 			BackgroundTransparency = 1,
 			AutoButtonColor = false,
+			Text = "",
+			LayoutOrder = tabBarOrder,
+			Parent = tabBar,
+		})
+		local fill = Create("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundColor3 = TAB_FILL,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 1,
+			Parent = btn,
+		}, { corner(8) })
+		local label = Create("TextLabel", {
+			Size = UDim2.new(0, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1,
 			Font = FONT_MED,
 			Text = tostring(name or "Tab"),
 			TextColor3 = THEME.SubText,
 			TextSize = 14,
-			LayoutOrder = tabBarOrder,
-			Parent = tabBar,
+			ZIndex = 2,
+			Parent = btn,
 		}, {
-			corner(8),
 			Create("UIPadding", { PaddingLeft = UDim.new(0, 22), PaddingRight = UDim.new(0, 22) }),
 		})
+
+		-- square off one inner corner: an 8px patch of the fill colour over the
+		-- rounded corner on the side that faces a neighbour (sits in the padding
+		-- margin, clear of the centred label, so it never covers text)
+		local function squareOff(targetFill, side)
+			return Create("Frame", {
+				AnchorPoint = side == "R" and Vector2.new(1, 0.5) or Vector2.new(0, 0.5),
+				Position = side == "R" and UDim2.new(1, 0, 0.5, 0) or UDim2.new(0, 0, 0.5, 0),
+				Size = UDim2.new(0, 8, 1, 0),
+				BackgroundColor3 = TAB_FILL,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 1,
+				Parent = targetFill,
+			})
+		end
+
+		tab.fill = fill
+		tab.hlParts = { fill }
+		if hasLeft then
+			-- this tab meets a tab on its left -> square its left corner
+			tab.hlParts[#tab.hlParts + 1] = squareOff(fill, "L")
+			-- and the previous tab now has a neighbour on ITS right -> square that
+			local prev = tabs[#tabs]
+			prev.hlParts[#prev.hlParts + 1] = squareOff(prev.fill, "R")
+			paintTab(prev, activeTab == prev, false)  -- show the new cover if prev is active
+		end
+
 		tab.button = btn
-		tab.label = btn
+		tab.label = label
 		btn.MouseEnter:Connect(function()
-			if activeTab ~= tab then tween(btn, { BackgroundTransparency = 0.72 }, TI.HOVER) end
+			if activeTab ~= tab then
+				for _, p in ipairs(tab.hlParts) do tween(p, { BackgroundTransparency = 0.86 }, TI.HOVER) end
+			end
 		end)
 		btn.MouseLeave:Connect(function()
-			if activeTab ~= tab then tween(btn, { BackgroundTransparency = 1 }, TI.HOVER) end
+			if activeTab ~= tab then
+				for _, p in ipairs(tab.hlParts) do tween(p, { BackgroundTransparency = 1 }, TI.HOVER) end
+			end
 		end)
 		btn.MouseButton1Click:Connect(function() showTab(tab) end)
 		paintTab(tab, false, false)
