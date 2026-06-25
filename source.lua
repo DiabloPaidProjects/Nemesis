@@ -1981,6 +1981,7 @@ function NEMESIS.Window(opts)
 	local Win = {}
 	local tabs = {}
 	local activeTab
+	local tabBarOrder = 0   -- interleaves tab buttons + dividers in the top bar
 
 	local function runSearch(text)
 		local page = activeTab and activeTab.activePage
@@ -2051,9 +2052,13 @@ function NEMESIS.Window(opts)
 
 	local function showTab(tab)
 		activeTab = tab
-		for _, t in ipairs(tabs) do
+		for i, t in ipairs(tabs) do
 			t.sidebarFrame.Visible = (t == tab)
 			paintTab(t, t == tab, true)
+			-- a divider shows only if it borders the active segment
+			if t.leftDivider then
+				t.leftDivider.Visible = (t == tab) or (tabs[i - 1] == tab)
+			end
 			for _, p in ipairs(t.pages) do p.body.Visible = false end
 		end
 		local pg = tab.activePage or tab.pages[1]
@@ -2070,36 +2075,41 @@ function NEMESIS.Window(opts)
 	function Win.Tab(name, icon)
 		local tab = { name = tostring(name or "Tab"), pages = {}, activePage = nil }
 
+		-- a full-height hairline sits BETWEEN tabs (its own list item, so it never
+		-- interferes with each button's AutomaticSize.X — that was clipping text).
+		-- only the dividers touching the active segment are shown (like the mockup).
+		if #tabs > 0 then
+			tabBarOrder = tabBarOrder + 1
+			tab.leftDivider = Create("Frame", {
+				Size = UDim2.new(0, 1, 1, 0),
+				BackgroundColor3 = Color3.fromRGB(58, 60, 74),
+				BorderSizePixel = 0,
+				Visible = (activeTab == tabs[#tabs]),
+				LayoutOrder = tabBarOrder,
+				Parent = tabBar,
+			})
+		end
+
 		-- top-tab segment: flush full-height fill (clipped to the bar's rounded
-		-- corners), a hairline divider on its right edge, no underline / accent
+		-- corners), no underline / accent
+		tabBarOrder = tabBarOrder + 1
 		local btn = Create("TextButton", {
 			Size = UDim2.new(0, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundColor3 = Color3.fromRGB(43, 45, 57),
+			BackgroundColor3 = Color3.fromRGB(40, 42, 53),
 			BackgroundTransparency = 1,
 			AutoButtonColor = false,
 			Font = FONT_MED,
 			Text = tostring(name or "Tab"),
 			TextColor3 = THEME.SubText,
 			TextSize = 14,
+			LayoutOrder = tabBarOrder,
 			Parent = tabBar,
 		}, {
-			Create("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 18) }),
-		})
-		-- hairline between this tab and the next (revealed once a later tab exists)
-		local divider = Create("Frame", {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, 0, 0.5, 0),
-			Size = UDim2.new(0, 1, 1, 0),
-			BackgroundColor3 = THEME.ElementStroke,
-			BorderSizePixel = 0,
-			Visible = false,
-			ZIndex = 2,
-			Parent = btn,
+			Create("UIPadding", { PaddingLeft = UDim.new(0, 22), PaddingRight = UDim.new(0, 22) }),
 		})
 		tab.button = btn
 		tab.label = btn
-		tab.divider = divider
 		btn.MouseEnter:Connect(function()
 			if activeTab ~= tab then tween(btn, { BackgroundTransparency = 0.72 }, TI.HOVER) end
 		end)
@@ -2386,8 +2396,6 @@ function NEMESIS.Window(opts)
 		end
 
 		table.insert(tabs, tab)
-		local prev = tabs[#tabs - 1]
-		if prev and prev.divider then prev.divider.Visible = true end
 		if #tabs == 1 then showTab(tab) end
 		return Tab
 	end
