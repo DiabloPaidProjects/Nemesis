@@ -339,18 +339,20 @@ end
 ----------------------------------------------------------------------
 -- Tween helpers
 ----------------------------------------------------------------------
+-- smooth & snappy easing set: short Quint/Quad Out glides that read as fluid
+-- but stay responsive (hover is fast; no sluggish 0.6s curves anywhere)
 local TI = {
-	EXP = TweenInfo.new(0.6, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),    -- hover, fills, flashes
-	FAST = TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),   -- toggle, arrows
-	TAB = TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),    -- open, tab switch, page slide
-	EXPAND = TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out),-- dropdown / panels / collapse
-	POP = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out),          -- slider handle grab
-	SCROLL = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),       -- smooth wheel scroll
+	EXP = TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),       -- fills, flashes
+	FAST = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),     -- toggle, arrows, sub-tab
+	TAB = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),      -- minimize, tab switch, page slide
+	EXPAND = TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),   -- dropdown / panels / collapse
+	POP = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out),       -- slider / toggle knob pop
+	SCROLL = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),    -- smooth wheel scroll
 }
 TI.OPEN = TI.TAB
-TI.HOVER = TI.EXP
+TI.HOVER = TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)      -- responsive hover
 TI.SLIDE = TI.EXPAND
-TI.NOTIFY = TI.EXP
+TI.NOTIFY = TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)    -- notification glide
 
 local function tween(inst, props, info)
 	local t = TweenService:Create(inst, info or TI.SLIDE, props)
@@ -825,6 +827,11 @@ function Elements.Toggle(parent, accent, opts)
 		local info = animate and TI.FAST or TweenInfo.new(0)
 		tween(track, { BackgroundColor3 = state and accent or THEME.ToggleOff }, info)
 		tween(knob, { Position = state and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0) }, info)
+		if animate then
+			-- subtle squash/stretch pop as the knob settles
+			tween(knob, { Size = UDim2.new(0, 18, 0, 16) }, TI.POP)
+			task.delay(0.11, function() tween(knob, { Size = UDim2.new(0, 16, 0, 16) }, TI.POP) end)
+		end
 	end
 	function control.Set(v, silent)
 		state = v and true or false
@@ -2001,19 +2008,24 @@ function NEMESIS.Window(opts)
 	end
 
 	local SIDEBAR_PAGE_TEXT = Color3.fromRGB(206, 208, 221)  -- inactive sub-tab label
-	local function applyPageVisual(tab, page)
+	local function applyPageVisual(tab, page, animate)
 		for _, p in ipairs(tab.pages) do
 			local on = (p == page)
 			p.row.BackgroundColor3 = THEME.SidebarActive
-			p.row.BackgroundTransparency = on and 0 or 1
-			p.label.TextColor3 = on and accent or SIDEBAR_PAGE_TEXT
+			if animate then
+				tween(p.row, { BackgroundTransparency = on and 0 or 1 }, TI.FAST)
+				tween(p.label, { TextColor3 = on and accent or SIDEBAR_PAGE_TEXT }, TI.FAST)
+			else
+				p.row.BackgroundTransparency = on and 0 or 1
+				p.label.TextColor3 = on and accent or SIDEBAR_PAGE_TEXT
+			end
 			p.active = on
 		end
 	end
 
 	local function showPage(tab, page, animate)
 		tab.activePage = page
-		applyPageVisual(tab, page)
+		applyPageVisual(tab, page, animate ~= false)
 		if tab ~= activeTab then return end
 		for _, p in ipairs(tab.pages) do p.body.Visible = (p == page) end
 		if animate ~= false then
