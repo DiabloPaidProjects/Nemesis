@@ -15,7 +15,7 @@ end
 local Win = NEMESIS.Window({
 	title = "NEMESIS",
 	accent = Color3.fromRGB(140, 90, 255),
-	logoColor = Color3.fromRGB(255, 45, 45),
+	-- logoColor omitted -> uses the new purple default (override with any Color3)
 	toggleKey = Enum.KeyCode.RightShift,
 })
 
