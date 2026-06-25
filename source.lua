@@ -2516,30 +2516,30 @@ function NEMESIS.Window(opts)
 	--------------------------------------------------------------------
 	local minW = IS_MOBILE and 420 or 640
 	local minH = 380
-	local resizeGrip = Create("Frame", {
+	-- SIRIUS X resize handle: a large invisible hit area + the curved corner icon
+	local resizeGrip = Create("ImageButton", {
 		Name = "ResizeGrip",
 		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -8, 1, -8),
-		Size = UDim2.new(0, 20, 0, 20),
+		Position = UDim2.new(1, -6, 1, -6),
+		Size = UDim2.new(0, 44, 0, 44),
 		BackgroundTransparency = 1,
-		ZIndex = 6,
+		Image = "",
+		AutoButtonColor = false,
+		ZIndex = 7,
 		Parent = root,
 	})
-	-- diagonal-line resize handle: short ╱ strokes in the corner
-	local gripLines = {}
-	for _, d in ipairs({ { len = 16, off = 1 }, { len = 11, off = 5 }, { len = 6, off = 9 } }) do
-		gripLines[#gripLines + 1] = Create("Frame", {
-			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -d.off, 1, -d.off),
-			Size = UDim2.new(0, 2, 0, d.len),
-			Rotation = 45,
-			BackgroundColor3 = THEME.SubText,
-			BackgroundTransparency = 0.4,
-			BorderSizePixel = 0,
-			ZIndex = 6,
-			Parent = resizeGrip,
-		}, { corner(1) })
-	end
+	local resizeIcon = Create("ImageLabel", {
+		Name = "Icon",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(0, 18, 0, 18),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://86527207319523",
+		ImageColor3 = Color3.fromRGB(82, 82, 82),
+		ImageTransparency = 0.62,
+		ZIndex = 8,
+		Parent = resizeGrip,
+	})
 	do
 		-- SIRIUS-style smooth resize: a RenderStepped loop where the visual size
 		-- eases toward a cursor-driven target each frame (frame-rate independent
@@ -2562,8 +2562,19 @@ function NEMESIS.Window(opts)
 			local vp = viewportSize()
 			return math.max(minW, vp.X / scale - 40), math.max(minH, vp.Y / scale - 40)
 		end
-		local function setGrip(t)
-			for _, l in ipairs(gripLines) do tween(l, { BackgroundTransparency = t }, TI.HOVER) end
+		-- exact SIRIUS setLiveTrackResizeVisual: icon grows/brightens on hover/drag
+		local function setGrip(mode)
+			local size, color, transparency = 18, Color3.fromRGB(82, 82, 82), 0.62
+			if mode == "drag" then
+				size, color, transparency = 23, Color3.fromRGB(112, 112, 112), 0.08
+			elseif mode == "hover" then
+				size, color, transparency = 21, Color3.fromRGB(98, 98, 98), 0.28
+			end
+			tween(resizeIcon, {
+				Size = UDim2.new(0, size, 0, size),
+				ImageColor3 = color,
+				ImageTransparency = transparency,
+			}, TweenInfo.new(0.16, Enum.EasingStyle.Sine, Enum.EasingDirection.Out))
 		end
 		local function stopLoop()
 			if loopConn then loopConn:Disconnect(); loopConn = nil end
@@ -2589,11 +2600,11 @@ function NEMESIS.Window(opts)
 
 		resizeGrip.MouseEnter:Connect(function()
 			hovering = true
-			if not resizing then setGrip(0.15) end
+			if not resizing then setGrip("hover") end
 		end)
 		resizeGrip.MouseLeave:Connect(function()
 			hovering = false
-			if not resizing then setGrip(0.4) end
+			if not resizing then setGrip("idle") end
 		end)
 		resizeGrip.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -2602,7 +2613,7 @@ function NEMESIS.Window(opts)
 				startPointer = getPointer(input)
 				startW, startH = W, H
 				targetW, targetH = W, H
-				setGrip(0)
+				setGrip("drag")
 				startLoop()
 			end
 		end)
@@ -2622,7 +2633,7 @@ function NEMESIS.Window(opts)
 				or input.UserInputType == Enum.UserInputType.Touch then
 				if resizing then
 					resizing = false
-					setGrip(hovering and 0.15 or 0.4)
+					setGrip(hovering and "hover" or "idle")
 				end
 			end
 		end)
