@@ -2018,14 +2018,13 @@ function NEMESIS.Window(opts)
 		breadcrumb.Text = table.concat(parts, string.format('  <font color="#%s">\u{203A}</font>  ', hexOf(THEME.Faint)))
 	end
 
+	local SIDEBAR_PAGE_TEXT = Color3.fromRGB(206, 208, 221)  -- inactive sub-tab label
 	local function applyPageVisual(tab, page)
 		for _, p in ipairs(tab.pages) do
 			local on = (p == page)
 			p.row.BackgroundColor3 = THEME.SidebarActive
 			p.row.BackgroundTransparency = on and 0 or 1
-			p.accentBar.Visible = on
-			p.label.TextColor3 = on and accent or THEME.SubText
-			if p.iconImg then p.iconImg.ImageColor3 = on and accent or THEME.SubText end
+			p.label.TextColor3 = on and accent or SIDEBAR_PAGE_TEXT
 			p.active = on
 		end
 	end
@@ -2190,44 +2189,23 @@ function NEMESIS.Window(opts)
 
 		local function makePage(pname, popts, groupName, parentFrame)
 			popts = popts or {}
+			-- sub-tab row: plain text, no icon / accent bar (matches the mockup)
 			local row = Create("TextButton", {
-				Size = UDim2.new(1, 0, 0, 32),
+				Size = UDim2.new(1, 0, 0, 40),
 				BackgroundColor3 = THEME.SidebarActive,
 				BackgroundTransparency = 1,
 				AutoButtonColor = false,
 				Text = "",
 				Parent = parentFrame or tab.sidebarFrame,
 			}, { corner(8) })
-			local accentBar = Create("Frame", {
-				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.new(0, 0, 0.5, 0),
-				Size = UDim2.new(0, 3, 0, 16),
-				BackgroundColor3 = accent,
-				BorderSizePixel = 0,
-				Visible = false,
-				Parent = row,
-			}, { corner(2) })
-			local iconImg
-			local hasIcon = false
-			if popts.icon then
-				iconImg = Create("ImageLabel", {
-					BackgroundTransparency = 1,
-					AnchorPoint = Vector2.new(0, 0.5),
-					Position = UDim2.new(0, 12, 0.5, 0),
-					Size = UDim2.new(0, 16, 0, 16),
-					ImageColor3 = THEME.SubText,
-					Parent = row,
-				})
-				hasIcon = applyIcon(iconImg, resolveIcon(popts.icon))
-			end
 			local label = Create("TextLabel", {
 				BackgroundTransparency = 1,
-				Position = UDim2.new(0, hasIcon and 38 or 14, 0, 0),
-				Size = UDim2.new(1, hasIcon and -48 or -24, 1, 0),
+				Position = UDim2.new(0, 16, 0, 0),
+				Size = UDim2.new(1, -28, 1, 0),
 				Font = FONT_MED,
 				Text = tostring(pname or "Page"),
-				TextColor3 = THEME.SubText,
-				TextSize = 13,
+				TextColor3 = SIDEBAR_PAGE_TEXT,
+				TextSize = 14,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				Parent = row,
@@ -2301,7 +2279,7 @@ function NEMESIS.Window(opts)
 			local page = {
 				name = tostring(pname or "Page"),
 				group = groupName,
-				row = row, accentBar = accentBar, label = label, iconImg = hasIcon and iconImg or nil,
+				row = row, label = label,
 				body = pageBody, active = false,
 			}
 			table.insert(tab.pages, page)
@@ -2344,6 +2322,22 @@ function NEMESIS.Window(opts)
 		local Tab = {}
 		function Tab.Group(gname)
 			groupCount = groupCount + 1
+			-- hairline separating this group from the previous one
+			if groupCount > 1 then
+				Create("Frame", {
+					Size = UDim2.new(1, 0, 0, 17),
+					BackgroundTransparency = 1,
+					Parent = tab.sidebarFrame,
+				}, {
+					Create("Frame", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						Size = UDim2.new(1, -8, 0, 1),
+						BackgroundColor3 = THEME.RowDivider,
+						BorderSizePixel = 0,
+					}),
+				})
+			end
 			local container = Create("Frame", {
 				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
@@ -2351,26 +2345,26 @@ function NEMESIS.Window(opts)
 				Parent = tab.sidebarFrame,
 			}, {
 				Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
-				Create("UIPadding", { PaddingTop = UDim.new(0, groupCount > 1 and 12 or 2) }),
+				Create("UIPadding", { PaddingTop = UDim.new(0, 2) }),
 			})
-			-- boxed, clickable header
+			-- purple-tinted clickable header bar
 			local header = Create("TextButton", {
-				Size = UDim2.new(1, 0, 0, 32),
-				BackgroundColor3 = THEME.Element,
-				BackgroundTransparency = 0.4,
+				Size = UDim2.new(1, 0, 0, 40),
+				BackgroundColor3 = Color3.fromRGB(41, 32, 66),
+				BackgroundTransparency = 0.1,
 				AutoButtonColor = false,
 				Text = "",
 				Parent = container,
-			}, { corner(8), stroke(THEME.Stroke, 1, 0.3), padXY(12, 0) })
+			}, { corner(10), stroke(Color3.fromRGB(78, 56, 140), 1, 0.35), padXY(16, 0) })
 			Create("TextLabel", {
 				AnchorPoint = Vector2.new(0, 0.5),
 				Position = UDim2.new(0, 0, 0.5, 0),
-				Size = UDim2.new(1, -24, 1, 0),
+				Size = UDim2.new(1, -28, 1, 0),
 				BackgroundTransparency = 1,
 				Font = FONT_BOLD,
 				Text = string.upper(tostring(gname or "Group")),
 				TextColor3 = accent,
-				TextSize = 10,
+				TextSize = 12,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				Parent = header,
 			})
@@ -2380,9 +2374,9 @@ function NEMESIS.Window(opts)
 				chev = Create("ImageLabel", {
 					AnchorPoint = Vector2.new(1, 0.5),
 					Position = UDim2.new(1, 0, 0.5, 0),
-					Size = UDim2.new(0, 16, 0, 16),
+					Size = UDim2.new(0, 18, 0, 18),
 					BackgroundTransparency = 1,
-					ImageColor3 = THEME.SubText,
+					ImageColor3 = accent,
 					Parent = header,
 				})
 				applyIcon(chev, chevSpec)
@@ -2394,7 +2388,7 @@ function NEMESIS.Window(opts)
 					BackgroundTransparency = 1,
 					Font = FONT_BOLD,
 					Text = "\u{25BE}",
-					TextColor3 = THEME.SubText,
+					TextColor3 = accent,
 					TextSize = 13,
 					Parent = header,
 				})
