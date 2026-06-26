@@ -735,8 +735,8 @@ function Elements.Paragraph(parent, accent, opts)
 	}, {
 		corner(10),
 		stroke(THEME.Stroke, 1, 0.4),
-		padding(12),
-		Create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+		padding(16),
+		Create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }),
 		Create("TextLabel", {
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 18),
