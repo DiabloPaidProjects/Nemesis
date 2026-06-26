@@ -1986,23 +1986,18 @@ function Elements.ColorPicker(parent, accent, opts)
 				cx, cy = p.X - 240 + 141, p.Y + 30 + 196
 			end)
 			cpOpenPos = Vector2.new(cx, cy)
-			local CP_OPEN = TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-			local CP_POP = TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+			-- no animation: open instantly
+			if cpScale then cpScale.Scale = 1 end
+			panel.Position = UDim2.fromOffset(cx, cy)
+			panel.GroupTransparency = 0
 			backdrop.Visible = true
 			panel.Visible = true
-			panel.GroupTransparency = 1
-			panel.Position = UDim2.fromOffset(cx, cy + 16)
-			if cpScale then cpScale.Scale = 0.9 end
-			tween(panel, { GroupTransparency = 0, Position = UDim2.fromOffset(cx, cy) }, CP_OPEN)
-			if cpScale then tween(cpScale, { Scale = 1 }, CP_POP) end
 		else
 			if _ddCurrent == cpHandle then _ddCurrent = nil end
-			local CP_CLOSE = TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			-- no animation: close instantly
 			backdrop.Visible = false
-			local downY = (cpOpenPos and cpOpenPos.Y or 0) + 12
-			tween(panel, { GroupTransparency = 1, Position = UDim2.fromOffset(cpOpenPos and cpOpenPos.X or 0, downY) }, CP_CLOSE)
-			if cpScale then tween(cpScale, { Scale = 0.9 }, CP_CLOSE) end
-			task.delay(0.26, function() if not opened and panel then panel.Visible = false end end)
+			panel.GroupTransparency = 1
+			panel.Visible = false
 		end
 	end
 	cpHandle.close = function() openPanel(false) end
