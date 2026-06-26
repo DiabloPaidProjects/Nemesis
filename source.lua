@@ -1297,8 +1297,8 @@ function Elements.Input(parent, accent, opts)
 	local row = newRow(parent, ROW_H)
 	rowText(row, opts.text, opts.desc, FIELD_FRAC, 16)
 	-- Rayfield-style: starts small, grows with the text up to a cap, then clips
-	-- (the field scrolls so the front hides instead of spilling outside)
-	local MIN_W, MAX_W = 100, 220
+	-- (past the cap the front scrolls off instead of spilling outside the field)
+	local MIN_W, MAX_W = 84, 220
 	local field = Create("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, 0, 0.5, 0),
@@ -1308,6 +1308,13 @@ function Elements.Input(parent, accent, opts)
 		Parent = row,
 	}, { corner(8), stroke(THEME.ElementStroke, 1, 0.2) })
 	local fieldStroke = field:FindFirstChildOfClass("UIStroke")
+	-- inner clip rect == the bordered field, so the TextBox can never paint past it
+	local clip = Create("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 1, 0),
+		ClipsDescendants = true,
+		Parent = field,
+	})
 	local box = Create("TextBox", {
 		BackgroundTransparency = 1,
 		Position = UDim2.new(0, 10, 0, 0),
@@ -1320,13 +1327,16 @@ function Elements.Input(parent, accent, opts)
 		TextSize = 15,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ClearTextOnFocus = opts.clearOnFocus and true or false,
-		Parent = field,
+		Parent = clip,
 	})
 	local function fitWidth()
+		-- size from the actual text only; an empty box stays at MIN_W (the
+		-- placeholder must not widen it)
 		local tb = 0
-		pcall(function() tb = box.TextBounds.X end)
-		tween(field, { Size = UDim2.new(0, math.clamp(tb + 22, MIN_W, MAX_W), 0, 28) }, TI.FAST)
+		if box.Text ~= "" then pcall(function() tb = box.TextBounds.X end) end
+		field.Size = UDim2.new(0, math.clamp(tb + 22, MIN_W, MAX_W), 0, 28)
 	end
+	box:GetPropertyChangedSignal("Text"):Connect(fitWidth)
 	box:GetPropertyChangedSignal("TextBounds"):Connect(fitWidth)
 	fitWidth()
 
