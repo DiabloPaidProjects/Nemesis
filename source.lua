@@ -784,26 +784,45 @@ end
 function Elements.Divider(parent, accent, opts)
 	opts = opts or {}
 	local label = (type(opts) == "table" and (opts.text or opts.title)) or nil
+	-- tall row = clear breathing room above and below the line
 	local row = Create("Frame", {
-		Size = UDim2.new(1, -ROW_PAD * 2, 0, label and 22 or 12),
+		Size = UDim2.new(1, -ROW_PAD * 2, 0, label and 40 or 28),
 		Position = UDim2.new(0, ROW_PAD, 0, 0),
 		BackgroundTransparency = 1,
 		Parent = parent,
 	})
 	if label then
-		Create("TextLabel", {
+		-- bold bright label centred between two line segments (line - text - line)
+		local lbl = Create("TextLabel", {
 			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
-			Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundColor3 = THEME.Group, BackgroundTransparency = 0,
-			Font = FONT_MED, Text = " " .. tostring(label) .. " ", TextColor3 = THEME.SubText, TextSize = 13,
-			ZIndex = 2, Parent = row,
+			Size = UDim2.new(0, 0, 0, 16), AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1, Font = FONT_BOLD, Text = tostring(label),
+			TextColor3 = THEME.Text, TextSize = 14, Parent = row,
+		})
+		local left = Create("Frame", {
+			AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(0, 0, 0, 1),
+			BackgroundColor3 = THEME.RowDivider, BorderSizePixel = 0, Parent = row,
+		})
+		local right = Create("Frame", {
+			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.new(0, 0, 0, 1),
+			BackgroundColor3 = THEME.RowDivider, BorderSizePixel = 0, Parent = row,
+		})
+		local function layout()
+			local rw, tw = 0, 0
+			pcall(function() rw = row.AbsoluteSize.X; tw = lbl.TextBounds.X end)
+			local w = math.max(0, (rw - tw) / 2 - 12)
+			left.Size = UDim2.new(0, w, 0, 1)
+			right.Size = UDim2.new(0, w, 0, 1)
+		end
+		lbl:GetPropertyChangedSignal("TextBounds"):Connect(layout)
+		row:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+		layout()
+	else
+		Create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
+			Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = THEME.RowDivider, BorderSizePixel = 0, Parent = row,
 		})
 	end
-	Create("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
-		Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = THEME.RowDivider, BorderSizePixel = 0,
-		Parent = row,
-	})
 	return { Instance = row }
 end
 
@@ -2220,6 +2239,18 @@ function NEMESIS.Window(opts)
 		})
 	end
 
+	-- optional gradient tint on the logo image: logoGradient = { Color3, Color3 }
+	local logoGrad
+	if logoImage then
+		logoGrad = Create("UIGradient", { Rotation = 90, Enabled = false, Parent = logoImage })
+		local g = opts.logoGradient
+		if type(g) == "table" and g[1] and g[2] then
+			logoGrad.Color = ColorSequence.new(g[1], g[2])
+			logoGrad.Enabled = true
+			logoImage.ImageColor3 = Color3.new(1, 1, 1)
+		end
+	end
+
 	-- NEMESIS wordmark beside the logo
 	Create("TextLabel", {
 		Position = UDim2.new(0, 64, 0.5, 0),
@@ -3201,7 +3232,15 @@ function NEMESIS.Window(opts)
 	-- recolor the logo at runtime (any hue): Win.SetLogoColor(Color3.fromRGB(...))
 	function Win.SetLogoColor(c)
 		logoColor = c or logoColor
+		if logoGrad then logoGrad.Enabled = false end
 		if logoImage then logoImage.ImageColor3 = logoColor end
+	end
+	-- recolor the logo with a gradient: Win.SetLogoGradient(c1, c2)
+	function Win.SetLogoGradient(c1, c2)
+		if not (logoImage and logoGrad and c1 and c2) then return end
+		logoGrad.Color = ColorSequence.new(c1, c2)
+		logoGrad.Enabled = true
+		logoImage.ImageColor3 = Color3.new(1, 1, 1)
 	end
 
 	-- live-recolor the whole menu's accent (Win.SetAccent(Color3))
