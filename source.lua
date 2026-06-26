@@ -1510,6 +1510,7 @@ function Elements.ColorPicker(parent, accent, opts)
 	local control = {}
 	local panel, svBase, svDot, hueDot, alphaBar, alphaDot, hexBox, pctLabel
 	local headSwatch, headHex, slotRow, setModeVisual, setSlotVisual, rebuildSaved
+	local cpScale
 	local backdrop, openPanel
 	local cpHandle = {}
 	local opened = false
@@ -1577,16 +1578,23 @@ function Elements.ColorPicker(parent, accent, opts)
 			AutoButtonColor = false, Text = "", Visible = false, ZIndex = 50000, Parent = screenGui,
 		})
 		backdrop.MouseButton1Click:Connect(function() openPanel(false) end)
+		local panelScale = Create("UIScale", { Scale = 1 })
 		panel = Create("CanvasGroup", {
 			Name = "ColorPanel", Size = UDim2.new(0, 300, 0, 432), BackgroundColor3 = THEME.Group,
 			GroupTransparency = 1, Visible = false, ZIndex = 50001, Parent = screenGui,
 		}, {
-			corner(14), stroke(THEME.Stroke, 1, 0), padding(10),
+			corner(14), stroke(THEME.ElementStroke, 1, 0.35), panelScale,
+		})
+		cpScale = panelScale
+		-- absorb taps on empty panel areas so they don't fall through to the backdrop
+		Create("TextButton", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 1, Parent = panel })
+		local content = Create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ZIndex = 2, Parent = panel }, {
+			padding(10),
 			Create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 		})
 
 		-- header: live swatch + hex + mode toggle
-		local head = Create("Frame", { Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, LayoutOrder = 1, Parent = panel })
+		local head = Create("Frame", { Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, LayoutOrder = 1, Parent = content })
 		headSwatch = Create("Frame", {
 			AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(0, 22, 0, 22),
 			BackgroundColor3 = slotColor(active), Parent = head,
@@ -1616,16 +1624,16 @@ function Elements.ColorPicker(parent, accent, opts)
 		slotSeg, setSlotVisual = segmented(160, "First", "Second", function(i)
 			active = i; setSlotVisual(i); syncUI()
 		end)
-		slotRow = Create("Frame", { Size = UDim2.new(1, 0, 0, isGradient and 22 or 0), BackgroundTransparency = 1, LayoutOrder = 2, Visible = isGradient, Parent = panel })
+		slotRow = Create("Frame", { Size = UDim2.new(1, 0, 0, isGradient and 22 or 0), BackgroundTransparency = 1, LayoutOrder = 2, Visible = isGradient, Parent = content })
 		slotSeg.AnchorPoint = Vector2.new(0.5, 0.5)
 		slotSeg.Position = UDim2.new(0.5, 0, 0.5, 0)
 		slotSeg.Parent = slotRow
 
-		-- SV square
-		local sv = Create("Frame", { Size = UDim2.new(1, 0, 0, 150), BackgroundColor3 = Color3.fromHSV(cur().h, 1, 1), LayoutOrder = 3, Parent = panel }, { corner(6) })
+		-- SV square (matched 8px corners on every layer + a clean boundary stroke)
+		local sv = Create("Frame", { Size = UDim2.new(1, 0, 0, 150), BackgroundColor3 = Color3.fromHSV(cur().h, 1, 1), LayoutOrder = 3, Parent = content }, { corner(8), stroke(THEME.ElementStroke, 1, 0.4) })
 		svBase = sv
-		Create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), Parent = sv }, { corner(6), Create("UIGradient", { Transparency = numSeq(0, 1) }) })
-		Create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), Parent = sv }, { corner(6), Create("UIGradient", { Rotation = 90, Transparency = numSeq(1, 0) }) })
+		Create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), Parent = sv }, { corner(8), Create("UIGradient", { Transparency = numSeq(0, 1) }) })
+		Create("Frame", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), Parent = sv }, { corner(8), Create("UIGradient", { Rotation = 90, Transparency = numSeq(1, 0) }) })
 		svDot = Create("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(cur().s, 0, 1 - cur().v, 0), Size = UDim2.new(0, 10, 0, 10),
 			BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 52, Parent = sv,
@@ -1650,11 +1658,11 @@ function Elements.ColorPicker(parent, accent, opts)
 			end)
 		end
 
-		local hue = Create("Frame", { Size = UDim2.new(1, 0, 0, 8), LayoutOrder = 4, Parent = panel }, { corner(4), Create("UIGradient", { Color = hueSequence() }) })
+		local hue = Create("Frame", { Size = UDim2.new(1, 0, 0, 8), LayoutOrder = 4, Parent = content }, { corner(4), Create("UIGradient", { Color = hueSequence() }) })
 		hueDot = Create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(cur().h, 0, 0.5, 0), Size = UDim2.new(0, 12, 0, 12), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 52, Parent = hue }, { corner(6), stroke(Color3.new(0, 0, 0), 1, 0.35) })
 		bindBarDrag(hue, function(rel) cur().h = rel; syncUI(); commit() end)
 
-		alphaBar = Create("Frame", { Size = UDim2.new(1, 0, 0, 8), BackgroundColor3 = slotColor(active), LayoutOrder = 5, Parent = panel }, { corner(4), Create("UIGradient", { Transparency = numSeq(0, 1) }) })
+		alphaBar = Create("Frame", { Size = UDim2.new(1, 0, 0, 8), BackgroundColor3 = slotColor(active), LayoutOrder = 5, Parent = content }, { corner(4), Create("UIGradient", { Transparency = numSeq(0, 1) }) })
 		alphaDot = Create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1 - cur().alpha, 0, 0.5, 0), Size = UDim2.new(0, 12, 0, 12), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 52, Parent = alphaBar }, { corner(6), stroke(Color3.new(0, 0, 0), 1, 0.35) })
 		bindBarDrag(alphaBar, function(rel) cur().alpha = 1 - rel; syncUI(); commit() end)
 
@@ -1671,7 +1679,7 @@ function Elements.ColorPicker(parent, accent, opts)
 			Size = UDim2.new(1, 0, 0, 102), BackgroundTransparency = 1, BorderSizePixel = 0,
 			ScrollBarThickness = 3, ScrollBarImageColor3 = accent, ScrollBarImageTransparency = 0.3,
 			CanvasSize = UDim2.new(0, 0, 0, 0), AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ScrollingDirection = Enum.ScrollingDirection.Y, LayoutOrder = 6, Parent = panel,
+			ScrollingDirection = Enum.ScrollingDirection.Y, LayoutOrder = 6, Parent = content,
 		})
 		local grid = Create("Frame", { Size = UDim2.new(1, -6, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = gridWrap }, {
 			Create("UIGridLayout", { CellSize = UDim2.new(0, 40, 0, 30), CellPadding = UDim2.new(0, 6, 0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -1706,7 +1714,7 @@ function Elements.ColorPicker(parent, accent, opts)
 		rebuildSaved()
 
 		-- Custom hex
-		local hexRow = Create("Frame", { Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, LayoutOrder = 7, Parent = panel })
+		local hexRow = Create("Frame", { Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, LayoutOrder = 7, Parent = content })
 		Create("TextLabel", {
 			BackgroundTransparency = 1, Size = UDim2.new(0, 60, 1, 0), Font = FONT_BOLD, Text = "Custom:",
 			TextColor3 = THEME.SubText, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, Parent = hexRow,
@@ -1747,16 +1755,21 @@ function Elements.ColorPicker(parent, accent, opts)
 				local p = sw1.AbsolutePosition
 				tx, ty = p.X - 258, p.Y + 30
 			end)
+			local CP_OPEN = TweenInfo.new(0.26, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 			backdrop.Visible = true
 			panel.Visible = true
 			panel.GroupTransparency = 1
-			panel.Position = UDim2.fromOffset(tx, ty + 8)
-			tween(panel, { GroupTransparency = 0, Position = UDim2.fromOffset(tx, ty) }, TI.FAST)
+			panel.Position = UDim2.fromOffset(tx, ty + 14)
+			if cpScale then cpScale.Scale = 0.94 end
+			tween(panel, { GroupTransparency = 0, Position = UDim2.fromOffset(tx, ty) }, CP_OPEN)
+			if cpScale then tween(cpScale, { Scale = 1 }, CP_OPEN) end
 		else
 			if _ddCurrent == cpHandle then _ddCurrent = nil end
+			local CP_CLOSE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 			backdrop.Visible = false
-			tween(panel, { GroupTransparency = 1 }, TI.FAST)
-			task.delay(0.18, function() if not opened and panel then panel.Visible = false end end)
+			tween(panel, { GroupTransparency = 1 }, CP_CLOSE)
+			if cpScale then tween(cpScale, { Scale = 0.94 }, CP_CLOSE) end
+			task.delay(0.22, function() if not opened and panel then panel.Visible = false end end)
 		end
 	end
 	cpHandle.close = function() openPanel(false) end

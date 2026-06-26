@@ -188,7 +188,7 @@ s_note.Button({ text = "Send custom", button = "Send", callback = function()
 end })
 
 local s_credits = Cfg.Section("ABOUT")
-s_credits.Paragraph({ title = "NEMESIS", content = "A Roblox / Luau UI library for script executors. Smooth animations, neverlose-style dropdowns, a SIRIUS-style resize handle, and a recolorable logo." })
+s_credits.Paragraph({ title = "NEMESIS", content = "idk" })
 
 --======================================================================
 NEMESIS.Notify({ title = "NEMESIS", content = "Showcase loaded. Explore every tab.", duration = 5 })
