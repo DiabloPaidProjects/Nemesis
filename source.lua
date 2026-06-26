@@ -1,32 +1,28 @@
 --[[
-	NEMESIS UI Library  (v2.0)
-	A Roblox/Luau UI library for script executors — desktop cheat-menu layout.
+	NEMESIS UI Library (v1.0)
+	A UI library for Roblox script executors.
 
 	Load:
 		local NEMESIS = loadstring(game:HttpGet("https://raw.githubusercontent.com/DiabloPaidProjects/NEMESIS/main/source.lua"))()
 
-	v2.0 redesign (desktop-first; still scales down on touch):
-		- Centered segmented top tab bar (active = flush filled segment + dividers, smooth)
-		- Grouped left sidebar of sub-tabs with boxed, collapsible group headers
-		- Breadcrumb in the content header
-		- Collapsible content Sections holding inline rows (label left / control right)
-		- One-pager column grid for panels; recolorable brand logo
+	Hierarchy: Window > Tab > Group > Page > Section > controls
 
-	API (dot-style, hierarchy Window -> Tab -> Group -> Page -> Section -> controls):
 		local Win     = NEMESIS.Window({ title = "NEMESIS" })
 		local Combat  = Win.Tab("Combat")
 		local Aimbot  = Combat.Group("AIMBOT")
 		local General = Aimbot.Page("General", { icon = "crosshair" })
-		local Misc    = Combat.Page("Misc", { icon = "sliders-horizontal" })  -- standalone
+		local Misc    = Combat.Page("Misc", { icon = "sliders-horizontal" })  -- standalone sub-tab
 		local gen     = General.Section("GENERAL")
 		gen.Toggle({ text = "Enable", default = true, flag = "aim_enable" })
 		gen.Dropdown({ text = "Weapon Group", options = { "Rifles", "Pistols" }, default = "Rifles" })
 		gen.Keybind({ text = "Keybind", default = "MOUSE5", mode = "Hold" })
+
+	See README.md for the full reference.
 ]]
 
 local NEMESIS = {}
 NEMESIS.Flags = {}
-NEMESIS.Version = "2.0.0"
+NEMESIS.Version = "1.0.0"
 
 ----------------------------------------------------------------------
 -- Services (cloneref-safe)
@@ -2163,6 +2159,11 @@ end
 
 function NEMESIS.Window(opts)
 	opts = opts or {}
+	-- opts.theme = { Background = Color3, Element = Color3, ... } overrides any
+	-- THEME colour (see the Theme table near the top of this file for the keys)
+	if type(opts.theme) == "table" then
+		for key, value in pairs(opts.theme) do THEME[key] = value end
+	end
 	local accent = opts.accent or THEME.Accent
 	local accentHex = hexOf(accent)
 	local logoColor = opts.logoColor or Color3.fromRGB(150, 85, 255) -- tint for the built-in N logo (purple)
@@ -2657,7 +2658,7 @@ function NEMESIS.Window(opts)
 		local tab = { name = tostring(name or "Tab"), pages = {}, activePage = nil }
 
 		-- a full-height hairline sits BETWEEN tabs (its own list item, so it never
-		-- interferes with each button's AutomaticSize.X — that was clipping text).
+		-- interferes with each button's AutomaticSize.X - that was clipping text).
 		-- only the dividers touching the active segment are shown (like the mockup).
 		if #tabs > 0 then
 			tabBarOrder = tabBarOrder + 1

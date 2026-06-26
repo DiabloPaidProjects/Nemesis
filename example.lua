@@ -1,5 +1,5 @@
 --[[
-	NEMESIS v2.0 — example / demo
+	NEMESIS v2.0 - example / demo
 	Desktop CS2 cheat-menu layout. Panels are laid out as a one-pager 2-column grid
 	(set per-page with { columns = N }, or Window-wide with columns = N).
 	Run in your executor. RightShift hides/shows, Ctrl+K focuses search,
@@ -14,7 +14,7 @@ local Win = NEMESIS.Window({
 	accent = Color3.fromRGB(140, 90, 255),
 	-- logoColor = Color3.fromRGB(255, 45, 45), -- optional: recolor the N logo (default is purple)
 	columns = 2,                              -- panels per page (default 2 desktop / 1 mobile)
-	-- logo = 0,  -- ← optional: your own uploaded Roblox image/decal ID overrides the built-in N
+	-- logo = 0,  -- <- optional: your own uploaded Roblox image/decal ID overrides the built-in N
 	toggleKey = Enum.KeyCode.RightShift,
 })
 
@@ -52,7 +52,7 @@ smooth.Slider({ text = "Smooth", min = 0, max = 10, default = 3.5, increment = 0
 smooth.Dropdown({ text = "Smooth Type", options = { "Linear", "Exponential", "Adaptive" }, default = "Exponential", flag = "sm_type" })
 smooth.Slider({ text = "FOV", min = 0, max = 20, default = 2.5, increment = 0.1, flag = "sm_fov" })
 
--- Other AIMBOT sub-tabs (two panels each → balanced 2-column page)
+-- Other AIMBOT sub-tabs (two panels each -> balanced 2-column page)
 local tgtA = Targeting.Section("SELECTION")
 tgtA.Dropdown({ text = "Selection", options = { "FOV", "Distance", "Health", "Damage" }, default = "FOV", flag = "tgt_sel" })
 tgtA.Slider({ text = "Max FOV", min = 0, max = 360, default = 180, increment = 1, suffix = "°", flag = "tgt_fov" })
@@ -194,4 +194,4 @@ end })
 local about = ConfigMain.Section("ABOUT")
 about.Paragraph({ title = "NEMESIS v2.0", content = "Desktop cheat-menu layout with a one-pager 2-column panel grid, collapsible sections, smooth fade scroll, recolorable logo, and live FPS. Right-click a color swatch to copy its hex." })
 
-NEMESIS.Notify({ title = "NEMESIS", content = "Loaded — Combat ▸ Aimbot ▸ General", duration = 5 })
+NEMESIS.Notify({ title = "NEMESIS", content = "Loaded - Combat ▸ Aimbot ▸ General", duration = 5 })

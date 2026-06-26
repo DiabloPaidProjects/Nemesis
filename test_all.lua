@@ -1,5 +1,5 @@
 --[[
-	NEMESIS v2.0 — full test bench
+	NEMESIS v2.0 - full test bench
 	Loadstring this in your executor. It exercises every component across the new
 	Window -> Tab -> Group -> Page -> Section -> controls hierarchy.
 	RightShift hides/shows, Ctrl+K focuses search, drag the grip to resize.
@@ -20,7 +20,7 @@ local Win = NEMESIS.Window({
 })
 
 --====================================================================
--- TAB 1 — Elements (one Group, several Pages, every control)
+-- TAB 1 - Elements (one Group, several Pages, every control)
 --====================================================================
 local Elements = Win.Tab("Elements", "layout-grid")
 local Basic = Elements.Group("BASICS")
@@ -32,12 +32,12 @@ s1.Button({ text = "Plain Button", button = "Run", callback = function() notify(
 s1.Toggle({ text = "Toggle (off)", default = false, flag = "t_off",
 	callback = function(v) notify("Toggle", "off-default is now " .. tostring(v), 2) end })
 s1.Toggle({ text = "Toggle (on)", default = true, flag = "t_on" })
-s1.Label("This is a plain Label — small muted text inside a section.")
+s1.Label("This is a plain Label - small muted text inside a section.")
 
 -- Page: Sliders
 local SL = Basic.Page("Sliders", { icon = "sliders-horizontal" })
 local s2 = SL.Section("SLIDERS")
-s2.Slider({ text = "Integer 0–250", min = 0, max = 250, default = 100, increment = 1, flag = "s_int" })
+s2.Slider({ text = "Integer 0-250", min = 0, max = 250, default = 100, increment = 1, flag = "s_int" })
 s2.Slider({ text = "Percent", min = 0, max = 100, default = 50, increment = 5, suffix = "%", flag = "s_pct" })
 s2.Slider({ text = "Degrees", min = 0, max = 360, default = 90, increment = 15, suffix = "°", flag = "s_deg" })
 s2.Slider({ text = "Decimal", min = 0, max = 1, default = 0.65, increment = 0.01, flag = "s_dec" })
@@ -78,7 +78,7 @@ s6.Paragraph({ title = "Paragraph", content = "A title plus a longer wrapping bo
 s6.Label("Standalone pages render below the groups, just like the mockup's Backtrack / Anti-Aim / Misc.")
 
 --====================================================================
--- TAB 2 — Control (programmatic Set/Get)
+-- TAB 2 - Control (programmatic Set/Get)
 --====================================================================
 local ControlTab = Win.Tab("Control", "sliders-horizontal")
 local Live = ControlTab.Page("Live", { icon = "settings-2" })
@@ -99,7 +99,7 @@ s8.Button({ text = "Read all values", button = "Read", callback = function()
 end })
 
 --====================================================================
--- TAB 3 — Layout (two groups so sidebar grouping + dividers show)
+-- TAB 3 - Layout (two groups so sidebar grouping + dividers show)
 --====================================================================
 local Layout = Win.Tab("Layout", "columns-2")
 local Combat = Layout.Group("COMBAT")
@@ -129,4 +129,4 @@ local gridR = Grid.Section("RIGHT", { column = 2 }) -- forced into column 2
 gridR.Toggle({ text = "Manual column 2", default = false, flag = "grid_b" })
 gridR.Dropdown({ text = "Mode", options = { "A", "B", "C" }, default = "A", flag = "grid_m" })
 
-NEMESIS.Notify({ title = "NEMESIS", content = "Test bench loaded — explore every tab.", duration = 5 })
+NEMESIS.Notify({ title = "NEMESIS", content = "Test bench loaded - explore every tab.", duration = 5 })
