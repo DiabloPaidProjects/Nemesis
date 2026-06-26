@@ -255,7 +255,7 @@ workspace.CurrentCamera = camera
 -- task scheduler (no-op: do not run deferred callbacks during smoke test)
 ----------------------------------------------------------------------
 task = {
-	spawn = function() end,
+	spawn = function(fn, ...) if type(fn) == "function" then pcall(fn, ...) end end,
 	delay = function() end,
 	wait = function() return 0 end,
 	defer = function() end,

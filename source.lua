@@ -555,90 +555,101 @@ end
 function NEMESIS.Notify(opts)
 	opts = opts or {}
 	ensureRoot()
+	-- copied from Rayfield's RayfieldLibrary:Notify: grow the height in, stagger
+	-- the fade-in (bg -> title -> icon -> content), then fade out + shrink to 0
+	task.spawn(function()
+		local accent = opts.accent or THEME.Accent
+		local iconSpec = resolveIcon(opts.icon)
+		local EXP = function(t) return TweenInfo.new(t, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out) end
 
-	local accent = opts.accent or THEME.Accent
-	local iconSpec = resolveIcon(opts.icon)
-	local SLIDE = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-
-	local card = Create("Frame", {
-		Name = "Notif",
-		BackgroundColor3 = THEME.Element,
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-		Position = UDim2.new(1, 60, 0, 0),
-		ClipsDescendants = true,
-		Parent = notifyHolder,
-	}, {
-		corner(10),
-		stroke(THEME.ElementStroke, 1, 0.1),
-		Create("UIPadding", {
-			PaddingLeft = UDim.new(0, 13), PaddingRight = UDim.new(0, 13),
-			PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12),
-		}),
-		Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
-	})
-	local notifStroke = card:FindFirstChildOfClass("UIStroke")
-
-	-- head: optional icon + title
-	local head = Create("Frame", { Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, LayoutOrder = 1, Parent = card })
-	local img
-	local titleLeft = 0
-	if iconSpec then
-		img = Create("ImageLabel", {
-			AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(0, 18, 0, 18),
-			BackgroundTransparency = 1, ImageColor3 = accent, ImageTransparency = 1, Parent = head,
+		local card = Create("Frame", {
+			Name = "Notif",
+			BackgroundColor3 = THEME.Element,
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			ClipsDescendants = true,
+			Parent = notifyHolder,
+		}, {
+			corner(10),
+			stroke(THEME.ElementStroke, 1, 1),
+			Create("UIPadding", {
+				PaddingLeft = UDim.new(0, 13), PaddingRight = UDim.new(0, 13),
+				PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12),
+			}),
+			Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8) }),
 		})
-		applyIcon(img, iconSpec)
-		titleLeft = 26
-	end
-	local title = Create("TextLabel", {
-		Name = "Title", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, titleLeft, 0.5, 0),
-		Size = UDim2.new(1, -titleLeft, 1, 0), BackgroundTransparency = 1, Font = FONT_BOLD,
-		Text = tostring(opts.title or "Notification"),
-		TextColor3 = accent, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, TextTransparency = 1, Parent = head,
-	})
+		local notifStroke = card:FindFirstChildOfClass("UIStroke")
 
-	local content
-	if opts.content and opts.content ~= "" then
-		content = Create("TextLabel", {
-			Name = "Content", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
-			Font = FONT, Text = tostring(opts.content), TextColor3 = THEME.Text, TextSize = 15, TextWrapped = true,
-			TextXAlignment = Enum.TextXAlignment.Left, TextTransparency = 1, LayoutOrder = 2, Parent = card,
+		local head = Create("Frame", { Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, LayoutOrder = 1, Parent = card })
+		local img
+		local titleLeft = 0
+		if iconSpec then
+			img = Create("ImageLabel", {
+				AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(0, 18, 0, 18),
+				BackgroundTransparency = 1, ImageColor3 = accent, ImageTransparency = 1, Parent = head,
+			})
+			applyIcon(img, iconSpec)
+			titleLeft = 26
+		end
+		local title = Create("TextLabel", {
+			Name = "Title", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, titleLeft, 0.5, 0),
+			Size = UDim2.new(1, -titleLeft, 1, 0), BackgroundTransparency = 1, Font = FONT_BOLD,
+			Text = tostring(opts.title or "Notification"),
+			TextColor3 = accent, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, TextTransparency = 1, Parent = head,
 		})
-	end
 
-	-- Rayfield-style timer bar that drains over the duration
-	local track = Create("Frame", {
-		Name = "Track", Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = THEME.ElementStroke,
-		BackgroundTransparency = 1, LayoutOrder = 3, Parent = card,
-	}, { corner(2) })
-	local progress = Create("Frame", {
-		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = accent, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = track,
-	}, { corner(2), Create("UIGradient", { Color = ColorSequence.new(accent, accent:Lerp(Color3.fromRGB(255, 255, 255), 0.35)) }) })
+		local content
+		if opts.content and opts.content ~= "" then
+			content = Create("TextLabel", {
+				Name = "Content", BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+				Font = FONT, Text = tostring(opts.content), TextColor3 = THEME.Text, TextSize = 15, TextWrapped = true,
+				TextXAlignment = Enum.TextXAlignment.Left, TextTransparency = 1, LayoutOrder = 2, Parent = card,
+			})
+		end
 
-	-- slide + fade in
-	tween(card, { Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 0 }, SLIDE)
-	tween(title, { TextTransparency = 0 }, SLIDE)
-	if content then tween(content, { TextTransparency = 0 }, SLIDE) end
-	if img then tween(img, { ImageTransparency = 0 }, SLIDE) end
-	tween(track, { BackgroundTransparency = 0.45 }, SLIDE)
-	tween(progress, { BackgroundTransparency = 0 }, SLIDE)
+		-- timer bar (drains over the duration)
+		local track = Create("Frame", {
+			Name = "Track", Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = THEME.ElementStroke,
+			BackgroundTransparency = 1, LayoutOrder = 3, Parent = card,
+		}, { corner(2) })
+		local progress = Create("Frame", {
+			Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = accent, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = track,
+		}, { corner(2), Create("UIGradient", { Color = ColorSequence.new(accent, accent:Lerp(Color3.fromRGB(255, 255, 255), 0.35)) }) })
 
-	local duration = tonumber(opts.duration) or 4
-	-- drain the timer bar
-	tween(progress, { Size = UDim2.new(0, 0, 1, 0) }, TweenInfo.new(duration, Enum.EasingStyle.Linear))
+		-- measure the natural height, then collapse to 0 and grow in
+		task.wait()
+		local target = 60
+		pcall(function() target = card.AbsoluteSize.Y end)
+		card.AutomaticSize = Enum.AutomaticSize.None
+		card.Size = UDim2.new(1, 0, 0, 0)
 
-	task.delay(duration, function()
-		if not card or not card.Parent then return end
-		tween(card, { Position = UDim2.new(1, 60, 0, 0), BackgroundTransparency = 1 }, SLIDE)
-		if notifStroke then tween(notifStroke, { Transparency = 1 }, SLIDE) end
-		tween(title, { TextTransparency = 1 }, SLIDE)
-		if content then tween(content, { TextTransparency = 1 }, SLIDE) end
-		if img then tween(img, { ImageTransparency = 1 }, SLIDE) end
-		tween(track, { BackgroundTransparency = 1 }, SLIDE)
-		tween(progress, { BackgroundTransparency = 1 }, SLIDE)
-		task.delay(0.5, function() if card then card:Destroy() end end)
+		tween(card, { Size = UDim2.new(1, 0, 0, target) }, EXP(0.6))
+		task.wait(0.15)
+		tween(card, { BackgroundTransparency = 0 }, EXP(0.4))
+		tween(title, { TextTransparency = 0 }, EXP(0.3))
+		if notifStroke then tween(notifStroke, { Transparency = 0.1 }, EXP(0.4)) end
+		task.wait(0.05)
+		if img then tween(img, { ImageTransparency = 0 }, EXP(0.3)) end
+		task.wait(0.05)
+		if content then tween(content, { TextTransparency = 0 }, EXP(0.3)) end
+		tween(track, { BackgroundTransparency = 0.45 }, EXP(0.3))
+		tween(progress, { BackgroundTransparency = 0 }, EXP(0.3))
+
+		local duration = tonumber(opts.duration) or 4
+		tween(progress, { Size = UDim2.new(0, 0, 1, 0) }, TweenInfo.new(duration, Enum.EasingStyle.Linear))
+		task.wait(duration)
+
+		tween(card, { BackgroundTransparency = 1 }, EXP(0.4))
+		if notifStroke then tween(notifStroke, { Transparency = 1 }, EXP(0.4)) end
+		tween(title, { TextTransparency = 1 }, EXP(0.3))
+		if content then tween(content, { TextTransparency = 1 }, EXP(0.3)) end
+		if img then tween(img, { ImageTransparency = 1 }, EXP(0.3)) end
+		tween(track, { BackgroundTransparency = 1 }, EXP(0.3))
+		tween(progress, { BackgroundTransparency = 1 }, EXP(0.3))
+		tween(card, { Size = UDim2.new(1, 0, 0, 0) }, EXP(1))
+		task.wait(1)
+		if card then card:Destroy() end
 	end)
 end
 
